@@ -144,8 +144,23 @@
                             </div>
 
                             <button id="saveButton" class="btn btn-secondary btn-sm m-2" aria-expanded="false" type="button">Apply</button>
+                    </div>
+
+                    <div class="container my-5">
+                        <h3 class="text-dark mb-4">ModSecurity Log Viewer</h3>
+                        <div class="card shadow-lg">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Logs</h5>
+                            </div>
+                            <div class="card-body">
+                                <pre id="logViewer" style="max-height: 600px; overflow-y: auto; background-color: #f8f9fa; padding: 20px; border-radius: 5px; font-family: monospace; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;">
+                                </pre>
+                            </div>
+                        </div>
+                        <button id="clearLogs" class="btn btn-danger mt-2">Clear Logs</button>
 
                     </div>
+
 
                 </div>
             </div>
@@ -159,6 +174,39 @@
     <script src="assets/bootstrap/js/bootstrap.min.js"></script>
     <script src="assets/js/bs-init.js"></script>
     <script src="assets/js/theme.js"></script>
+
+    <script>
+        const logViewer = document.getElementById('logViewer');
+        const eventSource = new EventSource('/stream_logs');
+
+        // Load saved logs from localStorage when the page loads
+        const savedLogs = localStorage.getItem('logs');
+        if (savedLogs) {
+            logViewer.textContent = savedLogs;
+            logViewer.scrollTop = logViewer.scrollHeight; // Auto-scroll to the bottom
+        }
+
+        // Append new logs to the screen and save them to localStorage
+        eventSource.onmessage = function(event) {
+            const newLog = event.data + "\n";
+            logViewer.textContent += newLog;
+            logViewer.scrollTop = logViewer.scrollHeight; // Auto-scroll to the bottom
+
+            // Save updated logs to localStorage
+            localStorage.setItem('logs', logViewer.textContent);
+        };
+
+        // Optional: Log error handling
+        eventSource.onerror = function() {
+            console.error("Error connecting to log stream.");
+        };
+    </script>
+    <script>
+        document.getElementById('clearLogs').addEventListener('click', () => {
+            logViewer.textContent = '';
+            localStorage.removeItem('logs');
+        });
+    </script>
 </body>
 
 </html>
