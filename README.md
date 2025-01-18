@@ -43,3 +43,35 @@ make modules
 mkdir /etc/nginx/modules
 cp objs/ngx_http_modsecurity_module.so /etc/nginx/modules/
 ```
+
+nginx configuration
+```
+cp /opt/modproject/confs/nginx.conf /etc/nginx/
+cd /opt/modsecurity-crs/
+
+mv crs-setup.conf.example crs-setup.conf
+mv rules/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf.example rules/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf
+cd /opt/
+mv modsecurity-crs/ /usr/local/
+mkdir -p /etc/nginx/modsec
+cp /opt/ModSecurity/unicode.mapping /etc/nginx/modsec/
+cd ModSecurity
+mv modsecurity.conf-recommended modsecurity.conf
+cp modsecurity.conf /etc/nginx/modsec/
+
+## Configure nano /etc/nginx/modsec/modsecurity.conf after: (SecResponseBodyAccess On)
+cp /opt/modproject/confs/modsecurity.conf /etc/nginx/modsec
+
+cd /etc/nginx/modsec/
+
+## Configure nano main.conf after:
+cp /opt/modproject/confs/main.conf /etc/nginx/modsec
+
+sudo mkdir -p /root/certs/appcerts.com
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /root/certs/appcerts.com/myapp.key -out /root/certs/appcerts.com/myapp.crt
+
+cp /opt/modproject/confs/appcerts.com.conf /etc/nginx/conf.d
+chmod 400 /root/certs/appcerts.com/myapp.key
+
+```
+
