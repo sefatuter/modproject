@@ -72,6 +72,6 @@ sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /root/certs/app
 
 cp /opt/modproject/confs/appcerts.com.conf /etc/nginx/conf.d
 chmod 400 /root/certs/appcerts.com/myapp.key
-
+sudo chmod 644 /var/log/modsec_audit.log
 ```
 
