@@ -1,5 +1,7 @@
 # modproject
 
+## package insallation
+
 ubuntu 22.04
 
 /modproject
@@ -11,7 +13,148 @@ pip install flask flask-wtf
 ```
 
 
-modsecurity installation
+
+
+## modsecurity installation
+
+To install NGINX with ModSecurity on Ubuntu, follow these steps:
+
+---
+
+### **Step 1: Update System Packages**
+Ensure your system packages are up-to-date:
+```bash
+sudo apt update
+sudo apt upgrade -y
+```
+
+---
+
+### **Step 2: Install NGINX**
+Install the NGINX package:
+```bash
+sudo apt install nginx -y
+```
+
+---
+
+### **Step 3: Install Required Dependencies**
+Install dependencies required for ModSecurity:
+```bash
+sudo apt install libnginx-mod-http-modsecurity -y
+```
+
+This package provides the ModSecurity module for NGINX.
+
+---
+
+### **Step 4: Enable ModSecurity in NGINX**
+1. Open the main NGINX configuration file:
+   ```bash
+   sudo nano /etc/nginx/nginx.conf
+   ```
+
+2. Add the following line in the `http` block to enable the ModSecurity module:
+   ```nginx
+   modsecurity on;
+   modsecurity_rules_file /etc/nginx/modsecurity_includes.conf;
+   ```
+
+   - `modsecurity on;`: Enables ModSecurity.
+   - `modsecurity_rules_file`: Specifies the main ModSecurity configuration file.
+
+3. Save and exit the editor.
+
+---
+
+### **Step 5: Configure ModSecurity**
+
+The OWASP CRS provides predefined security rules for ModSecurity.
+1. Edit the configuration file uncomment  the following:
+
+   ```bash
+
+   Change:
+   ```text 
+     #include /usr/share/modsecurity-crs/owasp-crs.load
+   ```
+   To:
+  ```text
+     include /usr/share/modsecurity-crs/owasp-crs.load
+  ```
+
+
+3. Enable ModSecurity, by editing /etc/nginx/modsecurity.conf via attaching it to every transaction.
+   
+   Change:
+   ```text
+   SecRuleEngine DetectionOnly
+   ```
+   To:
+   ```text
+   SecRuleEngine On
+   ```
+
+   - `DetectionOnly`: Logs potential threats but does not block them.
+   - `On`: Actively blocks threats.
+
+4. Check /usr/share/modsecurity-crs/owasp-crs.load file. All should be uncommented. Comment IncludeOptional lines
+
+  Change:
+  ```text
+    Include /etc/modsecurity/crs/crs-setup.conf
+    IncludeOptional /etc/modsecurity/crs/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf
+    Include /usr/share/modsecurity-crs/rules/*.conf
+    IncludeOptional /etc/modsecurity/crs/RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf
+  ```
+
+  To:
+  ```text
+    Include /etc/modsecurity/crs/crs-setup.conf
+    #IncludeOptional /etc/modsecurity/crs/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf
+    Include /usr/share/modsecurity-crs/rules/*.conf
+    # IncludeOptional /etc/modsecurity/crs/RESPONSE-999-EXCLUSION-RULES-AFTER-CRS.conf
+  ```
+
+
+### **Step 7: Test and Restart NGINX**
+1. Test the NGINX configuration:
+   ```bash
+   sudo nginx -t
+   ```
+
+2. If the test is successful, restart NGINX:
+   ```bash
+   sudo systemctl restart nginx
+   ```
+
+
+
+### **Step 8: Verify ModSecurity**
+To confirm ModSecurity is active:
+1. Check NGINX logs for ModSecurity activity:
+   ```bash
+   sudo tail -f /var/log/nginx/error.log
+   sudo tail -f /var/log/nginx/modsec_audit.log
+   ```
+
+2. Trigger a security event by accessing the server with a suspicious query, such as:
+   ```bash
+   curl "http://your-server-ip/?test=<script>alert('xss')</script>"
+   ```
+
+If ModSecurity is active, you should see logs related to this request.
+
+---
+
+### Optional: Fine-Tune ModSecurity Rules
+- You can customize or disable specific rules by editing files in `/etc/nginx/modsec/crs/rules/`.
+- Use `SecRuleRemoveById` to disable specific rules.
+
+Now you have successfully installed and configured NGINX with ModSecurity on Ubuntu!
+
+
+## manual installation 
 ```
 cd /opt/
 sudo apt update && sudo apt upgrade -y
