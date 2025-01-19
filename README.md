@@ -15,7 +15,7 @@ modsecurity installation
 ```
 cd /opt/
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y nano gcc g++ make libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev git curl wget openssl libssl-dev libtool autoconf automake perl libperl-dev nginx bison ca-certificates flex gawk pkg-config libxslt1-dev libgd-dev libcurl4-openssl-dev expat libexpat1-dev libmaxminddb-dev libgeoip-dev
+sudo apt install -y nano gcc g++ make sqlite3 libpcre3 libpcre3-dev zlib1g zlib1g-dev libxml2 libxml2-dev git curl wget openssl libssl-dev libtool autoconf automake perl libperl-dev nginx bison ca-certificates flex gawk pkg-config libxslt1-dev libgd-dev libcurl4-openssl-dev expat libexpat1-dev libmaxminddb-dev libgeoip-dev
 
 git clone --depth 1 -b v3.0.9 https://github.com/SpiderLabs/ModSecurity
 git clone --depth 1 https://github.com/SpiderLabs/ModSecurity-nginx.git
