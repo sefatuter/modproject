@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i&amp;display=swap">
     <link rel="stylesheet" href="{{ url_for('static', filename='assets/fonts/fontawesome-all.min.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='assets/fonts/ionicons.min.css') }}">
+    <!-- Add SweetAlert2 CDN in head -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body id="page-top">
@@ -147,6 +149,52 @@
                     </div>
 
                     <div class="container my-5">
+                        <h3 class="text-dark mb-4">ModSecurity Custom Rules</h3>
+                        <div class="card shadow-lg">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Rules</h5>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Rule</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for rule in rules %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>{{ rule[1] }}</td>
+                                            <td>
+                                                <!-- Delete Rule -->
+                                                <form method="POST" action="{{ url_for('delete_rule_view', rule_id=rule[0]) }}" style="display:inline;">
+                                                    <button class="btn btn-danger btn-sm">Delete</button>
+                                                </form>
+                                                <!-- Edit Rule -->
+                                                <form method="POST" action="{{ url_for('edit_rule_view', rule_id=rule['id']) }}" style="display: inline;">
+                                                    <input type="hidden" name="updatedRule" value="{{ rule['rule'] }}">
+                                                    <button type="button" class="btn btn-warning btn-sm" onclick="editRule(this)">Edit</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                <!-- Add Rule -->
+                                <div class="mt-3">
+                                    <form method="POST" action="{{ url_for('panel') }}">
+                                        <textarea name="newRule" class="form-control" placeholder="Enter a new rule"></textarea>
+                                        <button class="btn btn-primary mt-2">Add Rule</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="container my-5">
                         <h3 class="text-dark mb-4">ModSecurity Log Viewer</h3>
                         <div class="card shadow-lg">
                             <div class="card-header bg-primary text-white">
@@ -175,6 +223,7 @@
     <script src="assets/js/bs-init.js"></script>
     <script src="assets/js/theme.js"></script>
 
+    <!-- Screen Log View -->
     <script>
         const logViewer = document.getElementById('logViewer');
         const eventSource = new EventSource('/stream_logs');
@@ -201,12 +250,87 @@
             console.error("Error connecting to log stream.");
         };
     </script>
+    <!-- Screen Log Clear -->
     <script>
         document.getElementById('clearLogs').addEventListener('click', () => {
             logViewer.textContent = '';
             localStorage.removeItem('logs');
         });
     </script>
+
+    <script>
+        function editRule(button) {
+            const form = button.closest('form'); // Find the nearest form
+            const currentRule = form.querySelector('input[name="updatedRule"]').value;
+            const newRule = prompt("Edit rule:", currentRule);
+    
+            if (newRule !== null) {
+                form.querySelector('input[name="updatedRule"]').value = newRule;
+                form.submit(); // Submit the form with updated value
+            }
+        }
+    </script>
+
+    <script>
+        document.getElementById('addRuleForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            try {
+                const response = await fetch('/modsettings', {
+                    method: 'POST',
+                    body: new FormData(this)
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    // Show error alert
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message,
+                        icon: 'error',
+                        confirmButtonText: 'Ok'
+                    }).then(() => {
+                        if (data.action === 'rule_removed') {
+                            // Reload the page to refresh the rules list
+                            window.location.reload();
+                        }
+                    });
+                } else {
+                    // Show success alert
+                    Swal.fire({
+                        title: 'Success!',
+                        text: data.message,
+                        icon: 'success',
+                        confirmButtonText: 'Ok'
+                    }).then(() => {
+                        // Reload the page to show the new rule
+                        window.location.reload();
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'An unexpected error occurred',
+                    icon: 'error',
+                    confirmButtonText: 'Ok'
+                });
+            }
+        });
+        </script>
+
+    <!-- Add this near the end of body -->
+    {% if show_alert %}
+    <script>
+        Swal.fire({
+            title: 'NGINX Configuration Error!',
+            text: "{{ error_message }}",
+            icon: 'error',
+            confirmButtonText: 'Ok'
+        });
+    </script>
+    {% endif %}
+
 </body>
 
 </html>
