@@ -5,7 +5,9 @@
 {% block content %}
     
 <div class="container my-5">
-    <h1 class="text-center">Edit Rule: {{ filename }}</h1>
+    <h2 class="text-center text-muted">Edit Rule: {{ description }}</h2>
+
+    <p>FILE: {{ filename }}</p>
     <form method="POST">
         <textarea name="file_content" class="form-control" rows="20">{{ content }}</textarea>
         <div class="text-center mt-4">
@@ -14,5 +16,17 @@
         </div>
     </form>
 </div>
+
+
+    {% if show_alert %}
+    <script>
+        Swal.fire({
+            title: 'Configuration',
+            text: "{{ message }}",
+            icon: '{{ icon }}',
+            confirmButtonText: 'Ok'
+        });
+    </script>
+    {% endif %}
 
 {% endblock %}

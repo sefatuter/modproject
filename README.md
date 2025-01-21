@@ -218,3 +218,7 @@ chmod 400 /root/certs/appcerts.com/myapp.key
 sudo chmod 644 /var/log/modsec_audit.log
 ```
 
+
+```
+sudo chown -R www-user:www-user /usr/local/modsecurity-crs/rules/
+```

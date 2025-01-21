@@ -6,7 +6,7 @@ import sqlite3
 import subprocess
 from database import init_db, add_rule, get_all_rules, delete_rule, update_rule
 from markupsafe import Markup
-from rules import get_rule_files
+from rules import get_rule_files, RULE_DESCRIPTIONS
 
 app = Flask(__name__)
 
@@ -108,25 +108,39 @@ def rules_ui():
 @app.route('/edit_rule/<filename>', methods=['GET', 'POST'])
 def edit_rule_ui(filename):
     file_path = os.path.join(RULES_DIRECTORY, filename)
+    temp_file_path = f"{file_path}.temp"
+
+    description = RULE_DESCRIPTIONS.get(filename, "Unknown Rule")
+
     if request.method == 'POST':
+        # TEMP FILE
+        subprocess.run(['sudo', 'cp', file_path, temp_file_path], check=True, capture_output=True)
         # Save changes
         new_content = request.form.get('file_content')
+
+        # Write mew content
         with open(file_path, 'w') as file:
             file.write(new_content)
+        
+        with open(file_path, 'r') as file:
+            content = file.read()
         
         # Validate configuration
         try:
             check_nginx()
             restart_nginx()
-            return "Changes saved and applied successfully."
+            subprocess.run(['sudo', 'rm', '-rf', f'{RULES_DIRECTORY}{filename}.temp'], check=True, capture_output=True)
+            return render_template('edit_rule.html',filename=filename, content=content, description=description, show_alert=True, message=f"Rule added to {filename}, changes saved.", icon="success")
         except subprocess.CalledProcessError as e:
-            return f"Error applying changes: {e.stderr.decode()}"
+            subprocess.run(['sudo', 'mv', f'{RULES_DIRECTORY}{filename}.temp', f'{RULES_DIRECTORY}{filename}'], check=True, capture_output=True)
+            return render_template('edit_rule.html', filename=filename, content=content, description=description, show_alert=True, message=f"Rule cannot be added {filename}, changes are not saved.", icon="error")
+
     else:
         # Read file content
         if os.path.exists(file_path):
             with open(file_path, 'r') as file:
                 content = file.read()
-            return render_template('edit_rule.html', filename=filename, content=content)
+            return render_template('edit_rule.html', filename=filename, content=content, description=description, show_alert=False)
         else:
             return "File not found", 404
 
