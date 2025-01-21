@@ -9,7 +9,17 @@
 
     <p>FILE: {{ filename }}</p>
     <form method="POST">
-        <textarea name="file_content" class="form-control" rows="20">{{ content }}</textarea>
+        <!-- <textarea name="file_content" class="form-control" rows="20">{{ content }}</textarea> -->
+        {% for c in content %}
+        <div class="list-group-item bg-light shadow-sm mb-3">
+            <pre>{{ c }}</pre>
+            <div class="d-flex justify-content-end">
+                <a href="#" class="btn btn-warning btn-sm mx-2">Edit</a>
+                <a href="#" class="btn btn-danger btn-sm">Delete</a>
+            </div>
+        </div>
+        {% endfor %}
+
         <div class="text-center mt-4">
             <button type="submit" class="btn btn-success">Save Changes</button>
             <a href="{{ url_for('rules_ui') }}" class="btn btn-secondary">Cancel</a>

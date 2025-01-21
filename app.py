@@ -122,8 +122,10 @@ def edit_rule_ui(filename):
         with open(file_path, 'w') as file:
             file.write(new_content)
         
-        with open(file_path, 'r') as file:
-            content = file.read()
+        # with open(file_path, 'r') as file:
+        #     content = file.read()
+        
+        
         
         # Validate configuration
         try:
@@ -138,8 +140,9 @@ def edit_rule_ui(filename):
     else:
         # Read file content
         if os.path.exists(file_path):
-            with open(file_path, 'r') as file:
-                content = file.read()
+            # with open(file_path, 'r') as file:
+            #     content = file.read()
+            content = parse_modsecurity_file(file_path)
             return render_template('edit_rule.html', filename=filename, content=content, description=description, show_alert=False)
         else:
             return "File not found", 404
@@ -150,6 +153,47 @@ def restart_nginx():
 
 def check_nginx():
     subprocess.run(['sudo', 'nginx', '-t'], check=True, capture_output=True)
+
+def parse_modsecurity_file(file_path):
+    """
+    Parses a ModSecurity rules file and extracts only SecRule and SecAction blocks.
+    Ignores comments and captures multiline blocks neatly.
+    """
+    rules = []
+    current_rule = []
+    in_rule_block = False  # Flag to detect multiline rules
+
+    with open(file_path, 'r') as file:
+        for line in file:
+            stripped_line = line.strip()
+
+            # Skip comments and empty lines
+            if not stripped_line or stripped_line.startswith("#"):
+                continue
+
+            # Detect the start of a SecRule or SecAction block
+            if stripped_line.startswith("SecRule") or stripped_line.startswith("SecAction"):
+                if in_rule_block:
+                    # Save the previous rule if we're in a block
+                    rules.append("\n".join(current_rule))
+                    current_rule = []
+                in_rule_block = True
+
+            # Collect lines that belong to the current rule block
+            if in_rule_block:
+                current_rule.append(line.rstrip("\\").strip())  # Handle multiline continuation
+                # Detect the end of a rule block (no trailing '\')
+                if not stripped_line.endswith("\\"):
+                    rules.append("\n".join(current_rule))
+                    current_rule = []
+                    in_rule_block = False
+
+    # Ensure the last rule is added
+    if current_rule:
+        rules.append("\n".join(current_rule))
+
+    return rules
+
 
 
 if __name__ == '__main__':
