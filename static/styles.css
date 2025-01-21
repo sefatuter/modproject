@@ -1,40 +1,12 @@
-body {
-    font-family: Arial, sans-serif;
-}
+.form-check-input {
+    border: 0.2px solid; /* Add a solid border with primary color */
+    background-color: #cccfd13d; /* Add a background color */
+    cursor: pointer;          /* Add a pointer cursor for interactivity */
+    border-radius: 0.25rem;   /* Slightly round the corners */
 
-.container {
-    display: flex;
 }
-
-.sidebar {
-    width: 200px;
-    background-color: #f4f4f4;
-    padding: 15px;
-}
-
-.content {
-    flex: 1;
-    padding: 15px;
-}
-
-header {
-    background-color: #333;
-    color: white;
-    padding: 10px 15px;
-}
-
-header ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-}
-
-header ul li {
-    margin-right: 15px;
-}
-
-header ul li a {
-    color: white;
-    text-decoration: none;
+/* Add hover effect */
+.form-check-input:hover {
+    box-shadow: 0 0 4px rgba(13, 110, 253, 0.75); /* Glow effect on hover */
+    border-color: #0056b3; /* Darker border color on hover */
 }

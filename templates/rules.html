@@ -1,0 +1,27 @@
+{% extends 'includes/base.html' %}
+
+{% block title %}Settings Page{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid d-flex justify-content-center align-items-center text-light" style="min-height: 115vh;">
+    <div class="col-lg-5 col-xl-4">
+        <div class="card shadow text-dark shadow-lg p-4">
+            <h4 class="text-center mb-4">Select ModSecurity Rules</h4>
+            <form method="POST" action=""> <!--apply rules-->
+                {% for file in rule_files %}
+                <div class="form-check">
+                    <a href="{{ url_for('edit_rule_ui', filename=file)}}" id="editButton" class="btn btn-sm shadow-lg"><i class="fas fa-edit"></i></a>
+                    <label class="form-check-label" for="rule{{ loop.index }}">{{ file }}</label>
+                </div>
+                {% endfor %}
+                <div class="d-flex justify-content-center mt-4">
+                    <button id="saveButton" class="btn btn-success btn-sm" aria-expanded="false" type="submit">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
