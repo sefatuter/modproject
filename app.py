@@ -7,12 +7,17 @@ import subprocess
 from database import init_db, add_rule, get_all_rules, delete_rule, update_rule
 from markupsafe import Markup
 from rules import get_rule_files, RULE_DESCRIPTIONS
+import google.generativeai as genai
+from gemini import generation_config, model
 
 app = Flask(__name__)
 
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Allow up to 16MB
 RULE_FILE_PATH = "/etc/nginx/modsec/custom_rules.conf"
 RULES_DIRECTORY = "/usr/local/modsecurity-crs/rules/"
+
+# AI config
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 # Initialize the database
 init_db()
@@ -113,39 +118,86 @@ def edit_rule_ui(filename):
     description = RULE_DESCRIPTIONS.get(filename, "Unknown Rule")
 
     if request.method == 'POST':
-        # TEMP FILE
-        subprocess.run(['sudo', 'cp', file_path, temp_file_path], check=True, capture_output=True)
-        # Save changes
-        new_content = request.form.get('file_content')
+        # Create a temporary copy of the file
+        subprocess.run(['sudo', 'cp', file_path, temp_file_path], check=True)
 
-        # Write mew content
-        with open(file_path, 'w') as file:
-            file.write(new_content)
-        
-        # with open(file_path, 'r') as file:
-        #     content = file.read()
-        
-        
-        
-        # Validate configuration
+        # Gather updated rules from the form
+        updated_rules = []
+        for key, value in request.form.items():
+            if key.startswith("rule_"):
+                updated_rules.append(value.strip())
+
+        # Write changes to the original file
         try:
+            with open(file_path, 'w') as file:
+                file.write("\n".join(updated_rules) + "\n")
+
+            # Validate the new configuration
             check_nginx()
+
+            # If validation passes, reload NGINX
             restart_nginx()
-            subprocess.run(['sudo', 'rm', '-rf', f'{RULES_DIRECTORY}{filename}.temp'], check=True, capture_output=True)
-            return render_template('edit_rule.html',filename=filename, content=content, description=description, show_alert=True, message=f"Rule added to {filename}, changes saved.", icon="success")
+
+            # Delete the temporary file after successful validation and reload
+            subprocess.run(['sudo', 'rm', '-f', temp_file_path], check=True)
+
+            return render_template(
+                'edit_rule.html',
+                filename=filename,
+                content=updated_rules,
+                description=description,
+                show_alert=True,
+                message=f"Changes to {filename} saved successfully.",
+                icon="success"
+            )
         except subprocess.CalledProcessError as e:
-            subprocess.run(['sudo', 'mv', f'{RULES_DIRECTORY}{filename}.temp', f'{RULES_DIRECTORY}{filename}'], check=True, capture_output=True)
-            return render_template('edit_rule.html', filename=filename, content=content, description=description, show_alert=True, message=f"Rule cannot be added {filename}, changes are not saved.", icon="error")
+            # If an error occurs, restore the original file from the temp file
+            subprocess.run(['sudo', 'mv', temp_file_path, file_path], check=True)
+
+            # Reload the restored content
+            restored_content = parse_modsecurity_file(file_path)
+
+            return render_template(
+                'edit_rule.html',
+                filename=filename,
+                content=restored_content,
+                description=description,
+                show_alert=True,
+                message=f"Failed to apply changes. Configuration restored.",
+                icon="error"
+            )
+        except IOError as e:
+            # If writing to the file fails, restore the temp file
+            subprocess.run(['sudo', 'mv', temp_file_path, file_path], check=True)
+
+            # Reload the restored content
+            restored_content = parse_modsecurity_file(file_path)
+
+            return render_template(
+                'edit_rule.html',
+                filename=filename,
+                content=restored_content,
+                description=description,
+                show_alert=True,
+                message=f"Failed to write changes to file. Configuration restored.",
+                icon="error"
+            )
 
     else:
-        # Read file content
+        # Read file content for display
         if os.path.exists(file_path):
-            # with open(file_path, 'r') as file:
-            #     content = file.read()
             content = parse_modsecurity_file(file_path)
-            return render_template('edit_rule.html', filename=filename, content=content, description=description, show_alert=False)
+            return render_template(
+                'edit_rule.html',
+                filename=filename,
+                content=content,
+                description=description,
+                show_alert=False
+            )
         else:
             return "File not found", 404
+
+
 
 #--- Config ---
 def restart_nginx():
@@ -153,6 +205,42 @@ def restart_nginx():
 
 def check_nginx():
     subprocess.run(['sudo', 'nginx', '-t'], check=True, capture_output=True)
+    
+@app.route('/generate_ai_rule', methods=['POST'])
+def generate_ai_rule():
+    data = request.json
+    prompt = data.get('prompt')
+    content = data.get('content')  # Current rule or context
+
+    if not prompt:
+        return jsonify({"error": "No prompt provided"}), 400
+
+    try:
+        content = f"Existing Rule:\n{content}\n\nUser Prompt:\n{prompt}\n\nGenerate an improved and meet the user demands rule in ModSecurity format:"
+        # Simulate AI rule generation (replace this with actual AI logic)
+        # generated_rule = f"SecRule REQUEST_HEADERS:User-Agent \"{prompt}\" \"id:1001,phase:1,block,msg:'Generated AI Rule'\""
+        generated_rule = generate_rule(prompt, model, content)
+        generated_rule = clean_rule_text(generated_rule)
+        
+        return jsonify({"rule": generated_rule})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+def generate_rule(prompt, model, content):
+    response = model.generate_content(content + prompt)
+    return response.text
+
+def clean_rule_text(text):
+    # Split the text into lines and remove any empty lines
+    lines = [line for line in text.splitlines() if line.strip()]
+    
+    # Join the lines back together
+    cleaned_text = '\n'.join(lines)
+    
+    # Remove ALL backticks, no matter where they are
+    cleaned_text = cleaned_text.replace('`', '')
+        
+    return cleaned_text.strip()
 
 def parse_modsecurity_file(file_path):
     """

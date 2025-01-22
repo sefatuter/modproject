@@ -1,42 +1,142 @@
 {% extends 'includes/base.html' %}
 
-{% block title %}Settings Page{% endblock %}
+{% block title %}Edit Rule: {{ description }}{% endblock %}
 
 {% block content %}
-    
 <div class="container my-5">
     <h2 class="text-center text-muted">Edit Rule: {{ description }}</h2>
 
     <p>FILE: {{ filename }}</p>
     <form method="POST">
-        <!-- <textarea name="file_content" class="form-control" rows="20">{{ content }}</textarea> -->
         {% for c in content %}
         <div class="list-group-item bg-light shadow-sm mb-3">
-            <pre>{{ c }}</pre>
-            <div class="d-flex justify-content-end">
-                <a href="#" class="btn btn-warning btn-sm mx-2">Edit</a>
-                <a href="#" class="btn btn-danger btn-sm">Delete</a>
+            <!-- Rule textarea (hidden by default) -->
+            <textarea name="rule_{{ loop.index }}" class="form-control rule-content mb-2" rows="5" style="display: none;">{{ c }}</textarea>
+            <!-- Rule display (shown by default) -->
+            <pre class="rule-display">{{ c }}</pre>
+            <div class="justify-content-end mt-2">
+                <!-- Action buttons -->
+                <button type="button" class="btn btn-info btn-sm mx-2 ai-generate-btn" data-index="{{ loop.index }}">Generate With AI</button>
+                <button type="button" class="btn btn-warning btn-sm mx-2 edit-rule-btn">Edit Manually</button>
+                <button type="submit" name="save_rule" value="{{ loop.index }}" class="btn btn-success btn-sm mx-2 save-rule-btn" style="display: none;">Save</button>
+                <button type="submit" name="delete_rule" value="{{ loop.index }}" class="btn btn-danger btn-sm mx-2">Delete</button>
+                <br><br>
             </div>
+        </div>
+
+        <!-- AI Prompt Input (hidden by default) -->
+        <div class="ai-prompt-area mt-3" style="display: none;" id="ai-prompt-area-{{ loop.index }}">
+            <textarea class="form-control ai-prompt-input" placeholder="Enter your prompt for AI" rows="3"></textarea>
+            <button type="button" class="btn btn-primary btn-sm mt-2 submit-ai-btn" data-index="{{ loop.index }}">Generate</button>
         </div>
         {% endfor %}
 
         <div class="text-center mt-4">
-            <button type="submit" class="btn btn-success">Save Changes</button>
             <a href="{{ url_for('rules_ui') }}" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
 </div>
 
+{% if show_alert %}
+<script>
+    Swal.fire({
+        title: 'Configuration',
+        text: "{{ message }}",
+        icon: '{{ icon }}',
+        confirmButtonText: 'Ok'
+    });
+</script>
+{% endif %}
 
-    {% if show_alert %}
-    <script>
-        Swal.fire({
-            title: 'Configuration',
-            text: "{{ message }}",
-            icon: '{{ icon }}',
-            confirmButtonText: 'Ok'
+<script>
+    // JavaScript to enable the Edit functionality
+    document.addEventListener('DOMContentLoaded', () => {
+        const editButtons = document.querySelectorAll('.edit-rule-btn');
+        const saveButtons = document.querySelectorAll('.save-rule-btn');
+        const textareas = document.querySelectorAll('.rule-content');
+        const preBlocks = document.querySelectorAll('.rule-display');
+
+        editButtons.forEach((editBtn, index) => {
+            editBtn.addEventListener('click', () => {
+                // Switch between edit and view modes
+                textareas[index].style.display = 'block'; // Show the textarea
+                preBlocks[index].style.display = 'none'; // Hide the pre block
+                saveButtons[index].style.display = 'inline-block'; // Show the Save button
+                editBtn.style.display = 'none'; // Hide the Edit button
+            });
         });
-    </script>
-    {% endif %}
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const aiGenerateButtons = document.querySelectorAll('.ai-generate-btn');
+        const aiPromptAreas = document.querySelectorAll('.ai-prompt-area');
+        const preBlocks = document.querySelectorAll('.rule-display');
+        const textareas = document.querySelectorAll('.rule-content');
+        const saveButtons = document.querySelectorAll('.save-rule-btn');
+
+        // Toggle AI Prompt Area
+        aiGenerateButtons.forEach((btn, index) => {
+            btn.addEventListener('click', () => {
+                const aiPromptArea = aiPromptAreas[index];
+                aiPromptArea.style.display = aiPromptArea.style.display === 'none' ? 'block' : 'none';
+            });
+        });
+
+        // Handle AI Rule Generation
+        const submitAIButtons = document.querySelectorAll('.submit-ai-btn');
+        submitAIButtons.forEach((btn, index) => {
+            btn.addEventListener('click', async () => {
+                const promptInput = document.querySelectorAll('.ai-prompt-input')[index].value;
+                const currentRule = preBlocks[index].textContent.trim(); // Get the existing rule content
+
+                if (!promptInput) {
+                    alert('Please enter a prompt for AI.');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/generate_ai_rule', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            prompt: promptInput,
+                            content: currentRule // Send the current rule along with the prompt
+                        }),
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const generatedRule = data.rule;
+
+                        // Update the display with the new rule and make it editable
+                        preBlocks[index].textContent = generatedRule; // Update the rule display
+                        preBlocks[index].style.display = 'none'; // Hide the static rule display
+
+                        // Show the textarea with generated rule
+                        textareas[index].style.display = 'block';
+                        textareas[index].value = generatedRule; // Populate textarea with generated rule
+
+                        // Show the save button for the generated rule
+                        saveButtons[index].style.display = 'inline-block';
+
+                        // Hide AI prompt area
+                        aiPromptAreas[index].style.display = 'none';
+                    } else {
+                        alert('Failed to generate rule using AI.');
+                    }
+                } catch (error) {
+                    console.error('Error generating AI rule:', error);
+                    alert('An error occurred while generating the rule.');
+                }
+            });
+        });
+    });
+</script>
+
+
 
 {% endblock %}
