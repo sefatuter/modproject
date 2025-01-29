@@ -9,6 +9,7 @@ from markupsafe import Markup
 from rules import get_rule_files, RULE_DESCRIPTIONS
 import google.generativeai as genai
 from gemini import generation_config, model
+from openui import generate_rule_deepseek_rag
 
 app = Flask(__name__)
 
@@ -31,32 +32,43 @@ def panel():
     show_alert = False
     error_message = ""
     new_rule_id = None
-    # Add Rule
-    if request.method == 'POST':
-        new_rule = request.form.get('newRule')
-        if new_rule:
-            # Get the ID of the newly added rule
-            new_rule_id = add_rule(new_rule)  # You'll need to modify add_rule to return the ID
+    new_rule = None  # Initialize to avoid UnboundLocalError
+    ai_rule = None  # Initialize AI-generated rule variable
 
-    rules = get_all_rules()    
+    if request.method == 'POST':
+        # Check if the manual rule submission form was submitted
+        if 'newRule' in request.form:
+            new_rule = request.form.get('newRule')
+            if new_rule:
+                new_rule_id = add_rule(new_rule)  # Add manually entered rule
+
+        # Check if the AI-generated rule button was clicked
+        elif 'generateRule' in request.form:
+            ai_rule = generate_rule_deepseek_rag(request.form.get('generateRule'))
+            print(ai_rule)
+            if ai_rule:
+                new_rule_id = add_rule(ai_rule) 
+
+    # Retrieve all current rules
+    rules = get_all_rules()
+
     # Write rules to the ModSecurity configuration file
     try:
         rendered_rules = render_template('modsec_rules_template.j2', rules=rules)
         with open(RULE_FILE_PATH, 'w') as file:
             file.write(rendered_rules)    
 
-        # Test nginx configuration before restart
+        # Test Nginx configuration before restarting
         try:
             check_nginx()
-        except subprocess.CalledProcessError as e:
-            # If nginx test fails, delete the last added rule
-            if request.method == 'POST' and new_rule:
-                delete_rule(new_rule_id)
+        except subprocess.CalledProcessError:
+            if new_rule_id:
+                delete_rule(new_rule_id)  # Remove the rule if the test fails
             show_alert = True
-            error_message = f"NGINX configuration test failed. Rule was removed."
+            error_message = "NGINX configuration test failed. Rule was removed."
             return render_template('modsettings.html', rules=get_all_rules(), show_alert=show_alert, error_message=error_message)
 
-        # If test passes, restart nginx
+        # Restart Nginx if test passes
         restart_nginx()
 
     except IOError as e:
@@ -71,6 +83,7 @@ def panel():
         error_message = f"Error restarting NGINX: {e.stderr.decode()}"
 
     return render_template('modsettings.html', rules=rules, show_alert=show_alert, error_message=error_message)
+
 
 
 @app.route('/delete_rule/<int:rule_id>', methods=['POST'])
@@ -196,7 +209,6 @@ def edit_rule_ui(filename):
             )
         else:
             return "File not found", 404
-
 
 
 #--- Config ---

@@ -10,8 +10,6 @@
                 <div class="container my-5">
                     <!-- page center -->
                     <div class="container-fluid">
-                        <h3 class="text-dark mb-1">Blank Page</h3>
-
                         <h3 class="text-dark mb-4">ModSecurity Custom Rules</h3>
                         <div class="card shadow-lg">
                             <div class="card-header bg-primary text-white">
@@ -51,6 +49,11 @@
                                     <form method="POST" action="{{ url_for('panel') }}">
                                         <textarea name="newRule" class="form-control" placeholder="Enter a new rule"></textarea>
                                         <button class="btn btn-primary mt-2">Add Rule</button>
+                                    </form>
+                                    <hr>
+                                    <form method="POST" action="{{ url_for('panel') }}">
+                                        <textarea class="form-control" name="generateRule" placeholder="Enter a prompt"></textarea>
+                                        <button type="submit" class="btn btn-secondary mt-2">Add Rule Using AI</button>
                                     </form>
                                 </div>
                             </div>
