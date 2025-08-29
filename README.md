@@ -1,5 +1,14 @@
 # modproject
 
+<img width="1901" height="961" alt="image" src="https://github.com/user-attachments/assets/7eb0ebf6-5598-4a13-a462-5ef76e3c5046" />
+
+<img width="1901" height="960" alt="image" src="https://github.com/user-attachments/assets/2f760a52-369b-4eec-837c-c90f43442e27" />
+
+<img width="1902" height="957" alt="image" src="https://github.com/user-attachments/assets/217e3455-d526-48f9-9c2e-aa98bdbcefca" />
+
+<img width="1920" height="1000" alt="image" src="https://github.com/user-attachments/assets/5c22f195-8931-40bb-a20f-53654fda2906" />
+
+
 ## package insallation
 
 ubuntu 22.04
